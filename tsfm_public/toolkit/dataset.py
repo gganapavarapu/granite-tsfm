@@ -610,6 +610,7 @@ class ImputeForecastDFDataset(BaseConcatDFDataset):
         stride: int = 1,
         fill_value: Union[float, int] = 0.0,
         artificial_missing_rate: float = 0.0,
+        random_seed: int = 0,
     ):
         # output_columns_tmp = input_columns if output_columns == [] else output_columns
 
@@ -631,6 +632,7 @@ class ImputeForecastDFDataset(BaseConcatDFDataset):
             static_categorical_columns=static_categorical_columns,
             frequency_token=frequency_token,
             artificial_missing_rate=artificial_missing_rate,
+            rng=np.random.default_rng(seed=random_seed),
         )
         self.n_inp = 2
         # for forecasting, the number of targets is the same as number of X variables
@@ -659,6 +661,7 @@ class ImputeForecastDFDataset(BaseConcatDFDataset):
             stride: int = 1,
             fill_value: Union[float, int] = 0.0,
             artificial_missing_rate: float = 0.0,
+            rng=np.random.default_rng(),
         ):
             self.frequency_token = frequency_token
             self.target_columns = target_columns
@@ -667,6 +670,7 @@ class ImputeForecastDFDataset(BaseConcatDFDataset):
             self.conditional_columns = conditional_columns
             self.static_categorical_columns = static_categorical_columns
             self.artificial_missing_rate = artificial_missing_rate
+            self.rng = rng
 
             x_cols = join_list_without_repeat(
                 target_columns,
@@ -703,7 +707,7 @@ class ImputeForecastDFDataset(BaseConcatDFDataset):
 
             artificial_observed_mask = np.ones_like(self.X.values[:, self._target_mask], dtype=bool)
             obs_x = np.where(~np.isnan(self.X.values[:, self._target_mask]))
-            artificial_missing_indices = np.random.choice(
+            artificial_missing_indices = self.rng.choice(
                 range(len(obs_x[0])),
                 int(np.prod(artificial_observed_mask.shape) * self.artificial_missing_rate),
                 replace=False,
